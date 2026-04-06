@@ -3,9 +3,485 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý Sản phẩm</title>
+  <title>Unit Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      
+      
+    }
+    .converter-box {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 450px;
+      box-sizing: border-box;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+    select, input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #btn-convert {
+      background-color: #007bff;
+      color: white;
+    }
+    #btn-convert:hover {
+      background-color: #0056b3;
+    }
+    #btn-reset {
+      background-color: #e0e0e0;
+      color: #333;
+    }
+    #btn-reset:hover {
+      background-color: #c8c8c8;
+    }
+    .result-box {
+      text-align: center;
+      padding: 15px;
+      background-color: #e9ecef;
+      border-radius: 5px;
+      font-size: 18px;
+    }
+    #result {
+      font-weight: bold;
+      color: #28a745;
+    }
+  </style>
 </head>
 <body>
 
+  <div class="converter-box">
+    <h2>Công cụ Chuyển đổi</h2>
+
+    <div class="form-group">
+      <label for="category">Nhóm đơn vị:</label>
+      <select id="category">
+        <option value="temperature">Nhiệt độ</option>
+        <option value="length">Độ dài</option>
+        <option value="mass">Khối lượng</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="input-value">Giá trị:</label>
+      <input type="number" id="input-value" placeholder="Nhập giá trị cần chuyển đổi...">
+    </div>
+
+    <div class="form-group">
+      <label for="from-unit">Từ đơn vị:</label>
+      <select id="from-unit"></select>
+    </div>
+
+    <div class="form-group">
+      <label for="to-unit">Sang đơn vị:</label>
+      <select id="to-unit"></select>
+    </div>
+
+    <div class="btn-group">
+      <button id="btn-convert">Chuyển đổi</button>
+      <button id="btn-reset">Đặt lại</button>
+    </div>
+
+    <div class="result-box">
+      Kết quả: <span id="result"></span>
+    </div>
+  </div>
+
+  <script>
+    const unitOptions = {
+      temperature: [
+        { value: 'celsius', text: 'Celsius (°C)' },
+        { value: 'fahrenheit', text: 'Fahrenheit (°F)' },
+        { value: 'kelvin', text: 'Kelvin (K)' }
+      ],
+      length: [
+        { value: 'km', text: 'Kilômét' },
+        { value: 'm', text: 'Mét' },
+        { value: 'cm', text: 'Xentimét' },
+        { value: 'mile', text: 'Dặm' },
+        { value: 'inch', text: 'Inch' }
+      ],
+      mass: [
+        { value: 'kg', text: 'Kilôgam' },
+        { value: 'g', text: 'Gam' },
+        { value: 'lb', text: 'Pound' },
+        { value: 'oz', text: 'Ounce' }
+      ]
+    };
+
+    const categorySelect = document.getElementById('category');
+    const fromUnitSelect = document.getElementById('from-unit');
+    const toUnitSelect = document.getElementById('to-unit');
+    const inputVal = document.getElementById('input-value');
+    const btnConvert = document.getElementById('btn-convert');
+    const btnReset = document.getElementById('btn-reset');
+    const resultSpan = document.getElementById('result');
+
+    function updateUnitDropdowns() {
+      const selectedCategory = categorySelect.value;
+      const options = unitOptions[selectedCategory];
+      
+      let optionsHTML = '';
+      options.forEach(opt => {
+        optionsHTML += <option value="${opt.value}">${opt.text}</option>;
+      });
+
+      fromUnitSelect.innerHTML = optionsHTML;
+      toUnitSelect.innerHTML = optionsHTML;
+    }
+
+    updateUnitDropdowns();
+    categorySelect.addEventListener('change', updateUnitDropdowns);
+
+    function convertTemperature(val, from, to) {
+      if (from === to) return val;
+      let celsius;
+      
+      if (from === 'celsius') celsius = val;
+      else if (from === 'fahrenheit') celsius = (val - 32) * 5/9;
+      else if (from === 'kelvin') celsius = val - 273.15;
+
+      if (to === 'celsius') return celsius;
+      if (to === 'fahrenheit') return celsius * 9/5 + 32;
+      if (to === 'kelvin') return celsius + 273.15;
+    }
+
+    function convertLength(val, from, to) {
+      const toMeter = { km: 1000, m: 1, cm: 0.01, mile: 1609.344, inch: 0.0254 };
+      const meters = val * toMeter[from];
+      return meters / toMeter[to];
+    }
+
+    function convertMass(val, from, to) {
+      const toKg = { kg: 1, g: 1/1000, lb: 1/2.20462, oz: 1/35.274 };
+      const kgs = val * toKg[from];
+      return kgs / toKg[to];
+    }
+
+    btnConvert.addEventListener('click', () => {
+      const val = parseFloat(inputVal.value);
+      
+      if (isNaN(val)) {
+        resultSpan.textContent = 'Vui lòng nhập số hợp lệ!';
+        resultSpan.style.color = 'red';
+        return;
+      }
+      resultSpan.style.color = '#28a745';
+
+      const category = categorySelect.value;
+      const from = fromUnitSelect.value;
+      const to = toUnitSelect.value;
+      let result = 0;
+
+      if (category === 'temperature') {
+        result = convertTemperature(val, from, to);
+      } else if (category === 'length') {
+        result = convertLength(val, from, to);
+      } else if (category === 'mass') {
+        result = convertMass(val, from, to);
+      }
+
+      const formattedResult = new Intl.NumberFormat('en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 6,
+        useGrouping: false
+      }).format(result);
+
+      resultSpan.textContent = formattedResult;
+    });
+
+    btnReset.addEventListener('click', () => {
+      inputVal.value = '';
+      resultSpan.textContent = '';
+    });
+  </script>
+</body>
+</html>
+11:05
+Gia Sinh
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Sản phẩm</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    
+    .form-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    input {
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 15px;
+    }
+    .full-width {
+      grid-column: span 2;
+    }
+    button#btn-add {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button#btn-add:hover {
+      background-color: #218838;
+    }
+
+    .table-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #dee2e6;
+    }
+    th {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    
+    tbody tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    tbody tr:hover {
+      background-color: #e2e6ea;
+    }
+
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .sortable:hover {
+      background-color: #d6d8db;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Quản lý Cửa hàng</h1>
+
+  <div class="form-container">
+    <div class="form-group">
+      <label for="input-name">Tên sản phẩm *</label>
+      <input type="text" id="input-name" placeholder="Nhập tên sản phẩm (ít nhất 3 ký tự)">
+    </div>
+    <div class="form-group">
+      <label for="input-category">Danh mục</label>
+      <input type="text" id="input-category" placeholder="Nhập danh mục">
+    </div>
+    <div class="form-group">
+      <label for="input-price">Đơn giá *</label>
+      <input type="number" id="input-price" placeholder="Nhập đơn giá (>0)">
+    </div>
+    <div class="form-group">
+      <label for="input-quantity">Số lượng *</label>
+      <input type="number" id="input-quantity" placeholder="Nhập số lượng (>=1)">
+    </div>
+    <div class="form-group full-width">
+      <button id="btn-add">Thêm sản phẩm</button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table id="product-table">
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th id="th-name" class="sortable">Tên sản phẩm <span id="sort-icon"></span></th>
+          <th>Danh mục</th>
+          <th>Đơn giá</th>
+          <th>Số lượng</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let productsList = [];
+    let sortDirection = 0;
+
+    const tbody = document.querySelector('#product-table tbody');
+    const thName = document.getElementById('th-name');
+    const sortIcon = document.getElementById('sort-icon');
+    const btnAdd = document.getElementById('btn-add');
+
+    function fetchProducts() {
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          productsList = JSON.parse(xhr.responseText);
+          renderTable();
+        }
+      };
+      xhr.open('GET', 'products.json');
+      xhr.send();
+    }
+
+    function renderTable() {
+      tbody.innerHTML = '';
+      
+      productsList.forEach((product, index) => {
+        const tr = document.createElement('tr');
+        
+        const formattedPrice = new Intl.NumberFormat('vi-VN').format(product.price);
+
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${product.name}</td>
+          <td>${product.category || ''}</td>
+          <td>${formattedPrice} đ</td>
+          <td>${product.quantity}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    thName.addEventListener('click', () => {
+      if (productsList.length === 0) return;
+
+      sortDirection = sortDirection === 1 ? -1 : 1;
+      sortIcon.textContent = sortDirection === 1 ? '▲' : '▼';
+
+      productsList.sort((a, b) => {
+        return sortDirection * a.name.localeCompare(b.name, 'vi');
+      });
+
+      renderTable();
+    });
+
+    btnAdd.addEventListener('click', () => {
+      const inputName = document.getElementById('input-name');
+      const inputCategory = document.getElementById('input-category');
+      const inputPrice = document.getElementById('input-price');
+      const inputQuantity = document.getElementById('input-quantity');
+
+      const name = inputName.value.trim();
+      const category = inputCategory.value.trim();
+      const price = Number(inputPrice.value);
+      const quantity = Number(inputQuantity.value);
+
+      if (name.length < 3) {
+        alert('Lỗi: Tên sản phẩm không được rỗng và phải có ít nhất 3 ký tự!');
+        inputName.focus();
+        return;
+      }
+      if (price <= 0) {
+        alert('Lỗi: Đơn giá phải là số dương lớn hơn 0!');
+        inputPrice.focus();
+        return;
+      }
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        alert('Lỗi: Số lượng phải là số nguyên và lớn hơn hoặc bằng 1!');
+        inputQuantity.focus();
+        return;
+      }
+
+      const newProduct = {
+        id: Date.now(),
+        name: name,
+        category: category,
+        price: price,
+        quantity: quantity
+      };
+
+      productsList.push(newProduct);
+      renderTable();
+
+      inputName.value = '';
+      inputCategory.value = '';
+      inputPrice.value = '';
+      inputQuantity.value = '';
+    });
+
+    window.onload = fetchProducts;
+  </script>
 </body>
 </html>
